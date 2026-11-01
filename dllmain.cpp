@@ -14,6 +14,7 @@ using namespace A8CL; using namespace Global; using namespace Pointers;
 A8CL::OFFSET ProcessEvent("UObject::ProcessEvent", 0x819B70);
 A8CL::OFFSET Invoke("UFunction::Invoke", 0x702780);
 A8CL::OFFSET Entry("WinMainCRTStartup", 0x1F5DA38);
+A8CL::OFFSET VerifyCallback("VerifyCallback", 0x532B30);
 
 SDK::UGameMapsSettings* MapSettings{nullptr};
 
@@ -33,9 +34,19 @@ static void PreInit()
 	//LogWin();
 	LogA("Initialized", "The [GBA] Global Base Address is " + HexToString(GBA));
 
-	BytePatcher::ReplaceBytes(PB(0x531450), {0xB0, 0x01, 0xC3, 0x90}); // AViveportSDK::GetIsDRMCheckOK (no clue if this does anything)
+	//BytePatcher::ReplaceBytes(PB(0x531450), {0xB0, 0x01, 0xC3, 0x90}); // AViveportSDK::GetIsDRMCheckOK (no clue if this does anything)
 	BytePatcher::ReplaceBytes(PB(0x124EECB), {0x41, 0xC6, 0x01, 0x01, 0x90}); // Forces bMoviesAreSkippable to be true, still plays the sequence.
-	BytePatcher::ReplaceBytes(PB(0x539B50), {0xC3, 0x90}); // AMercenary2GameMode::VerifyUserInfo
+	//BytePatcher::ReplaceBytes(PB(0x539B50), {0xC3, 0x90}); // AMercenary2GameMode::VerifyUserInfo
+	//BytePatcher::ReplaceBytes(PB(0x532B30), {0xB0, 0x01, 0xC3, 0x90, 0x90});
+	//BytePatcher::ReplaceBytes(PB(0x535738), {0x90, 0x90});
+	//BytePatcher::ReplaceBytes(PB(0x53575F), {0xB2, 0x01});
+}
+
+char __fastcall VerifyCallbackHook(void* This, char Result)
+{
+	LogA(VerifyCallback.GetName(), "Stupid Verifier Called");
+	Result = 1;
+	return VerifyCallback.VerifyFC<char(__fastcall*)(void*, char)>()(This, Result);
 }
 
 /*
@@ -48,6 +59,9 @@ static void Init()
 {
 	while (GEngine() == nullptr) Sleep(150);
 
+	Hooks::Init();
+	Hooks::CreateAndEnableHook(VerifyCallback, VerifyCallbackHook);
+
 	if (!IsNull(MapSettings = SDK::UGameMapsSettings::GetDefaultObj()))
 	{
 		MapSettings->GameDefaultMap.AssetPathName = FString2FName(L"/Game/Maps/MainMenuLevel_Online.MainMenuLevel_Online");
@@ -57,7 +71,7 @@ static void Init()
 	
 	if (!bConstructedUConsole) bConstructedUConsole = ConstructUConsole();
 
-	while (1)
+	/*while (1)
 	{
 		Sleep(1750);
 
@@ -75,7 +89,7 @@ static void Init()
 				}
 			}
 		}
-	}
+	}*/
 }
 
 int __stdcall DllMain(HMODULE hModule, DWORD ulReasonForCall, LPVOID lpReserved)
